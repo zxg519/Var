@@ -2,7 +2,7 @@
 C++万能数据结构！
 data structure to store everything
 
-## 参考代码 ##
+## 参考测试代码 ##
 ```cpp
 int main()
 {
