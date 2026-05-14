@@ -52,7 +52,6 @@ public:
         return *this;
     }
 
-    // ====================== 类型名称函数 ======================
     string type() const {
         if (is_int())      return "int";
         if (is_double())   return "double";
@@ -63,13 +62,12 @@ public:
         return "unknown";
     }
 
-    // ====================== 类型判断函数 ======================
-    bool is_int() const { return holds_alternative<int>(data); }
-    bool is_double() const { return holds_alternative<double>(data); }
-    bool is_string() const { return holds_alternative<string>(data); }
-    bool is_complex() const { return holds_alternative<complex<double>>(data); }
-    bool is_list() const { return holds_alternative<vector<Var>>(data); }
-    bool is_dict() const { return holds_alternative<map<string, Var>>(data); }
+    bool is_int() const         { return holds_alternative<int>(data); }
+    bool is_double() const      { return holds_alternative<double>(data); }
+    bool is_string() const      { return holds_alternative<string>(data); }
+    bool is_complex() const     { return holds_alternative<complex<double>>(data); }
+    bool is_list() const        { return holds_alternative<vector<Var>>(data); }
+    bool is_dict() const        { return holds_alternative<map<string, Var>>(data); }
 
 public:
     size_t size() const {
@@ -172,8 +170,10 @@ ostream& operator<<(ostream& os, const Var& var) {
     visit([&](const auto& val) {
         using T = decay_t<decltype(val)>;
         if constexpr (is_same_v<T, int>) os << val;
-        else if constexpr (is_same_v<T, double>) os << fixed << setprecision(2) << val;
-        else if constexpr (is_same_v<T, complex<double>>) os << val.real() << "+" << val.imag() << "i";
+        else if constexpr (is_same_v<T, double>)
+            os << fixed << setprecision(2) << val;
+        else if constexpr (is_same_v<T, complex<double>>)
+            os << val.real() << "+" << val.imag() << "i";
         else if constexpr (is_same_v<T, vector<Var>>) {
             os << "[";
             for (size_t i = 0; i < val.size(); ++i) { if (i)os << ", "; os << val[i]; }
@@ -186,11 +186,10 @@ ostream& operator<<(ostream& os, const Var& var) {
             os << "}";
         }
         else if constexpr (is_same_v<T, string>) os << "\"" << val << "\"";
-        }, var.data);
+    }, var.data);
     return os;
 }
 
-// ====================== 你原来的全部测试代码（完整保留） ======================
 int main() {
     Var v = { 1, "hello", 2.0, complex<double>(1.0,2.0),Var{1, "hello", 2.0, complex<double>(1.0,2.0)} };
     cout << v << endl;
@@ -215,23 +214,31 @@ int main() {
         cout << d << endl;
     }
 
-    // ====================== 额外：测试 type() 函数 ======================
     cout << "\n=======================" << endl;
     cout << "类型检查演示：" << endl;
     cout << "num 类型: " << num.type() << endl;
     cout << "v 类型: " << v.type() << endl;
     cout << "dict 类型: " << dict.type() << endl;
 
-
+    // ====================== 修复：全部 complex<double> ======================
     Var vvv = { "hello",1,1, {1,"hello", {"hello","gagaga"}},"hello", 2.0, complex<double>(1.0,2.0),Var{1, "hello", 2.0, complex<double>(1.0,2.0)}};
-    cout << "vvv is " << vvv.type() << "=" << vvv << endl;
-    vvv[0] = complex<double>(1, 2.0);
-    cout << "vvv is " << vvv.type() << "=" << vvv << endl;
-    vvv[0][0][0][0][0][0][0][0] = 1.0;
-    cout << "vvv is " << vvv.type() << "=" << vvv << endl;
-    vvv = "Ooo!";
-    cout <<"vvv is "<<vvv.type()<<"="<<vvv << endl;
+    cout << "vvv is " << vvv.type() << " = " << vvv << endl;
 
-    Var vvv1 = { 1,{1,{1,{"hello",{"gagaga",complex<double>(1,2),3.0}}}}};
-    cout << "vvv is " << vvv.type() << "=" << vvv << endl;
+    vvv[0] = complex<double>(1, 2.0);
+    cout << "vvv is " << vvv.type() << " = " << vvv << endl;
+
+    vvv[0][0][0][0][0][0][0][0] = 1.0;
+    cout << "vvv is " << vvv.type() << " = " << vvv << endl;
+
+    vvv = "Ooo!";
+    cout << "vvv is " << vvv.type() << " = " << vvv << endl;
+
+    // ====================== 修复：这里原来是 vvv.type() 写错了！ ======================
+    Var vvv1 = { 1,{1,{1,{"hello",{"gagaga",complex<double>(1,2),3.0,complex<double>(1,2)}}}}};
+    cout << "vvv1 is " << vvv1.type() << " = " << vvv1 << endl;
+
+    vvv1 = complex<double>(2, 3);
+    cout << "vvv1 is " << vvv1.type() << " = " << vvv1 << endl;
+
+    return 0;
 }
