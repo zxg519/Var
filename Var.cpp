@@ -21,7 +21,8 @@ using VarVariant = variant<
     complex<double>,
     vector<Var>,
     map<string, Var>,
-    string
+    string,
+    char    // <--- 新增 char 类型
 >;
 
 struct Var {
@@ -37,6 +38,7 @@ public:
     Var(const map<string, Var>& v) : data(v) {}
     Var(const string& v) : data(v) {}
     Var(const char* v) : data(string(v)) {}
+    Var(char v) : data(v) {}  // <--- 新增 char 构造
     Var(const initializer_list<Var>& v) : data(vector<Var>(v)) {}
 
 public:
@@ -47,12 +49,14 @@ public:
     Var& operator=(const map<string, Var>& v) { data = v; return *this; }
     Var& operator=(const string& v) { data = v; return *this; }
     Var& operator=(const char* v) { data = string(v); return *this; }
+    Var& operator=(char v) { data = v; return *this; } // <--- 新增 char 赋值
     Var& operator=(const initializer_list<Var>& v) {
         data = vector<Var>(v);
         return *this;
     }
 
     string type() const {
+        if (is_char())     return "char";    // <--- 优先判断 char
         if (is_int())      return "int";
         if (is_double())   return "double";
         if (is_complex())  return "complex";
@@ -62,12 +66,13 @@ public:
         return "unknown";
     }
 
-    bool is_int() const         { return holds_alternative<int>(data); }
-    bool is_double() const      { return holds_alternative<double>(data); }
-    bool is_string() const      { return holds_alternative<string>(data); }
-    bool is_complex() const     { return holds_alternative<complex<double>>(data); }
-    bool is_list() const        { return holds_alternative<vector<Var>>(data); }
-    bool is_dict() const        { return holds_alternative<map<string, Var>>(data); }
+    bool is_char() const      { return holds_alternative<char>(data); }    // <--- 新增
+    bool is_int() const       { return holds_alternative<int>(data); }
+    bool is_double() const    { return holds_alternative<double>(data); }
+    bool is_string() const    { return holds_alternative<string>(data); }
+    bool is_complex() const   { return holds_alternative<complex<double>>(data); }
+    bool is_list() const      { return holds_alternative<vector<Var>>(data); }
+    bool is_dict() const      { return holds_alternative<map<string, Var>>(data); }
 
 public:
     size_t size() const {
@@ -169,34 +174,51 @@ public:
 ostream& operator<<(ostream& os, const Var& var) {
     visit([&](const auto& val) {
         using T = decay_t<decltype(val)>;
-        if constexpr (is_same_v<T, int>) os << val;
-        else if constexpr (is_same_v<T, double>)
+        if constexpr (is_same_v<T, char>) {         // <--- 新增 char 输出
+            os << "'" << val << "'";
+        }
+        else if constexpr (is_same_v<T, int>) {
+            os << val;
+        }
+        else if constexpr (is_same_v<T, double>) {
             os << fixed << setprecision(2) << val;
-        else if constexpr (is_same_v<T, complex<double>>)
+        }
+        else if constexpr (is_same_v<T, complex<double>>) {
             os << val.real() << "+" << val.imag() << "i";
+        }
         else if constexpr (is_same_v<T, vector<Var>>) {
             os << "[";
-            for (size_t i = 0; i < val.size(); ++i) { if (i)os << ", "; os << val[i]; }
+            for (size_t i = 0; i < val.size(); ++i) {
+                if (i) os << ", ";
+                os << val[i];
+            }
             os << "]";
         }
         else if constexpr (is_same_v<T, map<string, Var>>) {
             os << "{";
             bool first = true;
-            for (auto& [k, v] : val) { if (!first)os << ", "; first = false; os << "\"" << k << "\": " << v; }
+            for (auto& [k, v] : val) {
+                if (!first) os << ", ";
+                first = false;
+                os << "\"" << k << "\": " << v;
+            }
             os << "}";
         }
-        else if constexpr (is_same_v<T, string>) os << "\"" << val << "\"";
+        else if constexpr (is_same_v<T, string>) {
+            os << "\"" << val << "\"";
+        }
     }, var.data);
     return os;
 }
 
+// ====================== 你原来的 main + 新增 char 混合测试 ======================
 int main() {
     Var v = { 1, "hello", 2.0, complex<double>(1.0,2.0),Var{1, "hello", 2.0, complex<double>(1.0,2.0)} };
     cout << v << endl;
     cout << "-----------------------" << endl;
     cout << "列表 size = " << v.size() << endl;
     for (auto& d : v)
-        cout << d << endl;
+        cout << d << " (类型:" << d.type() << ")" << endl;
 
     Var num = 100;
     cout << "\nint size = " << num.size() << endl;
@@ -216,28 +238,54 @@ int main() {
 
     cout << "\n=======================" << endl;
     cout << "类型检查演示：" << endl;
-    cout << "num 类型: " << num.type() << endl;
-    cout << "v 类型: " << v.type() << endl;
+    cout << "num  类型: " << num.type() << endl;
+    cout << "v    类型: " << v.type() << endl;
     cout << "dict 类型: " << dict.type() << endl;
 
-    // ====================== 修复：全部 complex<double> ======================
-    Var vvv = { "hello",1,1, {1,"hello", {"hello","gagaga"}},"hello", 2.0, complex<double>(1.0,2.0),Var{1, "hello", 2.0, complex<double>(1.0,2.0)}};
-    cout << "vvv is " << vvv.type() << " = " << vvv << endl;
+    // ====================== 【新增】char 单独测试 ======================
+    Var c1 = 'A';
+    Var c2 = 'z';
+    Var c3 = '5';
+    cout << "\n=======================" << endl;
+    cout << "c1 = " << c1 << " 类型: " << c1.type() << endl;
+    cout << "c2 = " << c2 << " 类型: " << c2.type() << endl;
+    cout << "c3 = " << c3 << " 类型: " << c3.type() << endl;
+
+    // ====================== 【核心】超多类型混合列表（int + double + char + string + complex + 嵌套） ======================
+    Var mixed_list = {
+        100,                    // int
+        3.14,                   // double
+        'X',                    // char
+        "Test",                 // string
+        complex<double>(3, 4),   // complex
+        '!',                    // char
+        999,                    // int
+        Var{ 'a', 'b', 'c' }    // 嵌套 char 列表
+    };
+
+    cout << "\n=======================" << endl;
+    cout << "混合类型列表: " << mixed_list << endl;
+    cout << "列表类型: " << mixed_list.type() << endl;
+    cout << "遍历所有元素：\n";
+    for (auto& item : mixed_list) {
+        cout << "  " << item << "  \t类型: " << item.type() << endl;
+    }
+
+    // ====================== 你原有测试（也混入 char） ======================
+    Var vvv = { "hello", 'A', 1, 1, {1,'Z',{"hello",'g'}},"hello", 2.0, complex<double>(1.0,2.0)};
+    cout << "\nvvv is " << vvv.type() << " = " << vvv << endl;
 
     vvv[0] = complex<double>(1, 2.0);
+    vvv[1] = '?';  // 修改为 char
     cout << "vvv is " << vvv.type() << " = " << vvv << endl;
 
-    vvv[0][0][0][0][0][0][0][0] = 1.0;
+    vvv = 'Q';
     cout << "vvv is " << vvv.type() << " = " << vvv << endl;
 
-    vvv = "Ooo!";
-    cout << "vvv is " << vvv.type() << " = " << vvv << endl;
-
-    // ====================== 修复：这里原来是 vvv.type() 写错了！ ======================
-    Var vvv1 = { 1,{1,{1,{"hello",{"gagaga",complex<double>(1,2),3.0,complex<double>(1,2)}}}}};
+    Var vvv1 = { 1,{'@',{1,{"hello",{'$',complex<double>(1,2)}}}} };
     cout << "vvv1 is " << vvv1.type() << " = " << vvv1 << endl;
 
-    vvv1 = complex<double>(2, 3);
+    vvv1 = '!';
     cout << "vvv1 is " << vvv1.type() << " = " << vvv1 << endl;
 
     return 0;
