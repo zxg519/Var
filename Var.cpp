@@ -224,13 +224,14 @@ int main() {
 
 
     Var vvv = { "hello",1,1, {1,"hello", {"hello","gagaga"}},"hello", 2.0, complex<double>(1.0,2.0),Var{1, "hello", 2.0, complex<double>(1.0,2.0)}};
-    cout << vvv << endl;
+    cout << "vvv is " << vvv.type() << "=" << vvv << endl;
     vvv[0] = complex<double>(1, 2.0);
-    cout << vvv << endl;
+    cout << "vvv is " << vvv.type() << "=" << vvv << endl;
     vvv[0][0][0][0][0][0][0][0] = 1.0;
-    cout << vvv << endl;
+    cout << "vvv is " << vvv.type() << "=" << vvv << endl;
+    vvv = "Ooo!";
+    cout <<"vvv is "<<vvv.type()<<"="<<vvv << endl;
 
     Var vvv1 = { 1,{1,{1,{"hello",{"gagaga",complex<double>(1,2),3.0}}}}};
-    cout << vvv1 << endl;
-    return 0;
+    cout << "vvv is " << vvv.type() << "=" << vvv << endl;
 }
